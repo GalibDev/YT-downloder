@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { VideoInfo, FormatItem } from '@/types/youtube';
 import { formatBytes } from '@/lib/youtube';
-import { Download, Film, Music, Volume2, ShieldCheck, CheckCircle2, Loader2, AlertTriangle, Sparkles, ExternalLink, Zap, PlayCircle } from 'lucide-react';
+import { Download, Film, Music, Volume2, ShieldCheck, CheckCircle2, Loader2, AlertTriangle, Sparkles, ExternalLink, Zap } from 'lucide-react';
 
 interface FormatSelectorProps {
   info: VideoInfo;
@@ -15,7 +15,6 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
   const [downloadSuccessItag, setDownloadSuccessItag] = useState<number | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
-  const [showEmbedEngine, setShowEmbedEngine] = useState<boolean>(false);
 
   // Filter formats into categories
   const videoFormats = info.formats.filter((f) => f.hasVideo && f.hasAudio);
@@ -56,9 +55,7 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
       if (!response.ok || contentType.includes('json') || contentType.includes('html')) {
         let jsonErr: any = null;
         try { jsonErr = await response.json(); } catch {}
-
-        setShowEmbedEngine(true);
-        throw new Error(jsonErr?.error || 'YouTube server restriction detected. Using 1-Click HD Downloader Engine below.');
+        throw new Error(jsonErr?.error || 'YouTube server restriction detected. Please use the 1-Click HD Downloader Card below.');
       }
 
       const contentLength = response.headers.get('content-length');
@@ -110,13 +107,43 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
     }
   };
 
-  // SSYouTube & SaveFrom direct mirror links
   const ssYouTubeUrl = `https://ssyoutube.com/watch?v=${info.videoId}`;
   const loaderIframeUrl = `https://loader.to/api/card/?url=https://www.youtube.com/watch?v=${info.videoId}`;
 
   return (
     <div className="w-full space-y-6">
-      {/* Category Tabs */}
+      {/* ⚡ Primary 1-Click Universal HD Downloader Engine */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950/60 via-zinc-900 to-zinc-900 border border-red-500/40 shadow-2xl space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <Zap className="w-6 h-6 text-amber-400 fill-amber-400 animate-pulse shrink-0" />
+            <div>
+              <h4 className="font-extrabold text-white text-base sm:text-lg">1-Click Universal HD Downloader Engine</h4>
+              <p className="text-xs text-zinc-300">Downloads 1080p, 720p, 480p, 360p & MP3 files directly without restrictions.</p>
+            </div>
+          </div>
+          <a
+            href={ssYouTubeUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all shadow-lg shrink-0"
+          >
+            <span>SS Mirror Download</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+
+        {/* Embedded Loader.to Downloader Iframe */}
+        <div className="w-full rounded-2xl overflow-hidden bg-black/80 border border-white/10 shadow-inner">
+          <iframe
+            src={loaderIframeUrl}
+            className="w-full h-[320px] sm:h-[240px] border-none"
+            title="Universal HD Downloader Engine"
+          />
+        </div>
+      </div>
+
+      {/* Category Selection Tabs */}
       <div className="grid grid-cols-3 gap-2 p-1.5 rounded-2xl bg-zinc-900/90 border border-white/10 shadow-xl">
         <button
           onClick={() => { setActiveTab('video'); setDownloadError(null); }}
@@ -155,44 +182,14 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
         </button>
       </div>
 
-      {/* 1-Click HD Downloader Embed Card */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/40 via-zinc-900 to-zinc-900 border border-red-500/30 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-amber-400 fill-amber-400 animate-pulse" />
-            <h4 className="font-extrabold text-white text-sm sm:text-base">1-Click Universal HD Downloader</h4>
-          </div>
-          <a
-            href={ssYouTubeUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs flex items-center gap-1.5 transition-all shadow"
-          >
-            <span>SS YouTube Mirror</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        </div>
-        <p className="text-xs text-zinc-400">
-          Downloads 1080p Full HD, 720p HD, 480p, 360p, and MP3 files directly to your device with 0 restrictions.
-        </p>
-
-        {/* Embedded Loader.to Downloader Iframe */}
-        <div className="w-full rounded-xl overflow-hidden bg-black/60 border border-white/10 shadow-inner">
-          <iframe
-            src={loaderIframeUrl}
-            className="w-full h-[280px] sm:h-[220px] border-none"
-            title="Universal HD Downloader"
-          />
-        </div>
-      </div>
-
       {/* Error Alert Box */}
       {downloadError && (
-        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs sm:text-sm font-medium flex items-center justify-between gap-3">
+        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs sm:text-sm font-medium flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
             <span>{downloadError}</span>
           </div>
+
           <a
             href={ssYouTubeUrl}
             target="_blank"
@@ -211,8 +208,8 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
         <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-red-500" />
           <span>
-            {activeTab === 'video' && 'Available Video Resolutions (MP4 + Audio)'}
-            {activeTab === 'audio' && 'Available Music Tracks (MP3 / M4A)'}
+            {activeTab === 'video' && 'Direct Video Stream Candidates (MP4)'}
+            {activeTab === 'audio' && 'Direct Audio Stream Candidates (MP3 / M4A)'}
             {activeTab === 'hd' && 'High-Definition Video Streams (1080p / 4K)'}
           </span>
         </h3>
@@ -261,7 +258,7 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
                       )}
                       {item.qualityLabel?.includes('360') && (
                         <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md">
-                          ⚡ Fast Download
+                          ⚡ Fast Stream
                         </span>
                       )}
                     </div>
@@ -318,7 +315,7 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
                     )}
                   </button>
 
-                  {/* SSYouTube Direct Mirror Link */}
+                  {/* SS YouTube Direct Mirror Link */}
                   <a
                     href={ssYouTubeUrl}
                     target="_blank"
