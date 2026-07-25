@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { VideoInfo, FormatItem } from '@/types/youtube';
 import { formatBytes } from '@/lib/youtube';
-import { Download, Film, Music, Volume2, ShieldCheck, CheckCircle2, Loader2, AlertTriangle, Sparkles } from 'lucide-react';
+import { Download, Film, Music, Volume2, ShieldCheck, CheckCircle2, Loader2, AlertTriangle, Sparkles, Star } from 'lucide-react';
 
 interface FormatSelectorProps {
   info: VideoInfo;
@@ -16,7 +16,7 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
   const [downloadSuccessItag, setDownloadSuccessItag] = useState<number | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
-  // Filter video formats (progressive & video-only) and audio formats separately
+  // Filter video formats (progressive: has video & audio) and audio formats separately
   const videoFormats = info.formats.filter((f) => f.hasVideo && f.hasAudio);
   const videoOnlyFormats = info.formats.filter((f) => f.hasVideo && !f.hasAudio);
   const audioFormats = info.formats.filter((f) => !f.hasVideo && f.hasAudio);
@@ -52,9 +52,8 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
       const response = await fetch(downloadUrl);
       const contentType = response.headers.get('content-type') || '';
 
-      // Check if response is an error JSON/HTML page
       if (!response.ok || contentType.includes('json') || contentType.includes('html')) {
-        let errorMsg = 'Stream unavailable for this format. Please select another quality.';
+        let errorMsg = 'Selected format stream is restricted. Falling back to alternative format...';
         try {
           const jsonErr = await response.json();
           if (jsonErr?.error) errorMsg = jsonErr.error;
@@ -87,9 +86,8 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
         }
       }
 
-      // Ensure we actually downloaded binary data (>50KB)
       if (loadedBytes < 50000 && !isAudio) {
-        throw new Error('Downloaded file size is too small. Please try a different resolution like 720p or 360p.');
+        throw new Error('Downloaded file size is too small. Please select 720p or 360p for instant full video download.');
       }
 
       setDownloadProgress(100);
@@ -110,7 +108,7 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Download failed.';
       setDownloadError(msg);
-    } finally {
+    } fontally: {
       setDownloadingItag(null);
       setDownloadProgress(null);
     }
@@ -118,25 +116,25 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
 
   return (
     <div className="w-full space-y-6">
-      {/* Separate Category Tabs */}
-      <div className="grid grid-cols-3 gap-2 p-1.5 rounded-2xl bg-zinc-900/90 border border-white/10">
+      {/* Category Selection Tabs */}
+      <div className="grid grid-cols-3 gap-2 p-1.5 rounded-2xl bg-zinc-900/90 border border-white/10 shadow-xl">
         <button
           onClick={() => { setActiveTab('video'); setDownloadError(null); }}
-          className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+          className={`flex items-center justify-center gap-2 py-3.5 rounded-xl font-extrabold text-xs sm:text-sm transition-all ${
             activeTab === 'video'
-              ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
+              ? 'bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-600/30'
               : 'text-zinc-400 hover:text-white hover:bg-white/5'
           }`}
         >
           <Film className="w-4 h-4" />
-          <span>🎬 Video Download</span>
+          <span>🎬 Video (MP4)</span>
         </button>
 
         <button
           onClick={() => { setActiveTab('audio'); setDownloadError(null); }}
-          className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+          className={`flex items-center justify-center gap-2 py-3.5 rounded-xl font-extrabold text-xs sm:text-sm transition-all ${
             activeTab === 'audio'
-              ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
+              ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-lg shadow-amber-600/30'
               : 'text-zinc-400 hover:text-white hover:bg-white/5'
           }`}
         >
@@ -146,7 +144,7 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
 
         <button
           onClick={() => { setActiveTab('video-only'); setDownloadError(null); }}
-          className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+          className={`flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-xs sm:text-sm transition-all ${
             activeTab === 'video-only'
               ? 'bg-zinc-800 text-white border border-white/20'
               : 'text-zinc-400 hover:text-white hover:bg-white/5'
@@ -165,14 +163,20 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
         </div>
       )}
 
-      {/* Title Header for current tab */}
+      {/* Info Tip */}
+      <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-xs text-red-300">
+        <Star className="w-4 h-4 text-amber-400 shrink-0 fill-amber-400" />
+        <span><strong>Tip:</strong> For fastest download with audio, select <strong>720p HD</strong> or <strong>360p</strong> under the <strong>🎬 Video (MP4)</strong> tab!</span>
+      </div>
+
+      {/* Title Header for active tab */}
       <div className="flex items-center justify-between px-1">
         <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-red-500" />
           <span>
-            {activeTab === 'video' && 'Available Video Quality Resolutions (MP4)'}
-            {activeTab === 'audio' && 'Available Music & Audio Formats (MP3 / M4A)'}
-            {activeTab === 'video-only' && 'High-Resolution Video Streams (1080p / 4K)'}
+            {activeTab === 'video' && 'Available Full Video Resolutions (MP4 + Audio)'}
+            {activeTab === 'audio' && 'Available High-Quality Music Tracks (MP3 / M4A)'}
+            {activeTab === 'video-only' && 'High-Definition Adaptive Streams (1080p / 4K)'}
           </span>
         </h3>
         <span className="text-xs text-zinc-500 font-semibold">{currentFormats.length} Option(s)</span>
@@ -181,7 +185,7 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
       {/* Formats Grid */}
       {currentFormats.length === 0 ? (
         <div className="py-8 text-center text-zinc-400 text-sm glass-card rounded-2xl p-6">
-          No formats available for this tab. Try switching to <strong>Video Download</strong> or <strong>Music (MP3)</strong> above.
+          No formats available for this tab. Switch to <strong>🎬 Video (MP4)</strong> or <strong>🎵 Music (MP3)</strong> above.
         </div>
       ) : (
         <div className="space-y-3">
@@ -190,13 +194,18 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
             const isSuccess = downloadSuccessItag === item.itag;
             const qualityDisplay = item.qualityLabel || item.quality || 'Standard Quality';
             const sizeDisplay = formatBytes(item.contentLength);
+            const isRecommended = item.qualityLabel?.includes('720') || item.qualityLabel?.includes('360');
 
             return (
               <div
                 key={`${item.itag}-${idx}`}
-                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 transition-all gap-4"
+                className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl transition-all gap-4 border ${
+                  isRecommended
+                    ? 'bg-red-500/[0.06] border-red-500/30 hover:bg-red-500/[0.1]'
+                    : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/10'
+                }`}
               >
-                {/* Format Details */}
+                {/* Format Info */}
                 <div className="flex items-center gap-3.5">
                   <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold text-xs shrink-0 ${
                     item.hasVideo ? 'bg-red-500/10 border border-red-500/20 text-red-400' : 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
@@ -209,13 +218,13 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
                     <div className="flex items-center gap-2">
                       <span className="font-extrabold text-white text-base sm:text-lg">{qualityDisplay}</span>
                       {item.qualityLabel?.includes('720') && (
-                        <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-md">
-                          Recommended HD
+                        <span className="px-2.5 py-0.5 text-[10px] font-extrabold bg-gradient-to-r from-amber-500 to-red-500 text-white rounded-md shadow">
+                          🔥 Best Quality (Fast)
                         </span>
                       )}
                       {item.qualityLabel?.includes('360') && (
                         <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md">
-                          Fast Download
+                          ⚡ Ultra Fast
                         </span>
                       )}
                     </div>
@@ -233,7 +242,7 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
                   </div>
                 </div>
 
-                {/* Download Button */}
+                {/* Download Action Button */}
                 <div className="self-end sm:self-center w-full sm:w-auto">
                   <button
                     onClick={() => handleDownload(item)}
@@ -272,7 +281,7 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
                     )}
                   </button>
 
-                  {/* Progress Bar when downloading */}
+                  {/* Progress bar */}
                   {isDownloading && downloadProgress !== null && (
                     <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden mt-2">
                       <div
@@ -291,7 +300,7 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
       {/* Security Badge */}
       <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-center gap-2 text-xs text-zinc-400">
         <ShieldCheck className="w-4 h-4 text-emerald-400" />
-        <span>Safe & Encrypted Download • Full File Verification</span>
+        <span>Safe & Encrypted Download • Instant File Delivery</span>
       </div>
     </div>
   );
