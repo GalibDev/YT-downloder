@@ -3,20 +3,21 @@
 import React, { useState } from 'react';
 import { VideoInfo, FormatItem } from '@/types/youtube';
 import { formatBytes } from '@/lib/youtube';
-import { Download, Film, Music, Volume2, ShieldCheck, CheckCircle2, Loader2, AlertTriangle, Sparkles, ExternalLink, Zap } from 'lucide-react';
+import { Download, Film, Music, Volume2, ShieldCheck, CheckCircle2, Loader2, AlertTriangle, Sparkles, ExternalLink, Zap, PlayCircle } from 'lucide-react';
 
 interface FormatSelectorProps {
   info: VideoInfo;
 }
 
 export default function FormatSelector({ info }: FormatSelectorProps) {
-  const [activeTab, setActiveTab] = useState<'video' | 'audio' | 'video-only'>('video');
+  const [activeTab, setActiveTab] = useState<'video' | 'audio' | 'hd'>('video');
   const [downloadingItag, setDownloadingItag] = useState<number | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
   const [downloadSuccessItag, setDownloadSuccessItag] = useState<number | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [showEmbedEngine, setShowEmbedEngine] = useState<boolean>(false);
 
-  // Filter video formats (progressive: has video & audio) and audio formats separately
+  // Filter formats into categories
   const videoFormats = info.formats.filter((f) => f.hasVideo && f.hasAudio);
   const videoOnlyFormats = info.formats.filter((f) => f.hasVideo && !f.hasAudio);
   const audioFormats = info.formats.filter((f) => !f.hasVideo && f.hasAudio);
@@ -28,8 +29,8 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
     if (activeTab === 'audio') {
       return audioFormats.length > 0 ? audioFormats : info.formats.filter((f) => f.hasAudio);
     }
-    if (activeTab === 'video-only') {
-      return videoOnlyFormats;
+    if (activeTab === 'hd') {
+      return videoOnlyFormats.length > 0 ? videoOnlyFormats : info.formats;
     }
     return info.formats;
   };
@@ -56,14 +57,8 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
         let jsonErr: any = null;
         try { jsonErr = await response.json(); } catch {}
 
-        if (jsonErr?.fallbackUrl) {
-          // Trigger Fast Mirror Download if server proxy is restricted
-          window.open(jsonErr.fallbackUrl, '_blank');
-          setDownloadSuccessItag(format.itag);
-          return;
-        }
-
-        throw new Error(jsonErr?.error || 'Format stream restricted by YouTube. Please try another format.');
+        setShowEmbedEngine(true);
+        throw new Error(jsonErr?.error || 'YouTube server restriction detected. Using 1-Click HD Downloader Engine below.');
       }
 
       const contentLength = response.headers.get('content-length');
@@ -115,6 +110,10 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
     }
   };
 
+  // SSYouTube & SaveFrom direct mirror links
+  const ssYouTubeUrl = `https://ssyoutube.com/watch?v=${info.videoId}`;
+  const loaderIframeUrl = `https://loader.to/api/card/?url=https://www.youtube.com/watch?v=${info.videoId}`;
+
   return (
     <div className="w-full space-y-6">
       {/* Category Tabs */}
@@ -144,9 +143,9 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
         </button>
 
         <button
-          onClick={() => { setActiveTab('video-only'); setDownloadError(null); }}
+          onClick={() => { setActiveTab('hd'); setDownloadError(null); }}
           className={`flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-xs sm:text-sm transition-all ${
-            activeTab === 'video-only'
+            activeTab === 'hd'
               ? 'bg-zinc-800 text-white border border-white/20'
               : 'text-zinc-400 hover:text-white hover:bg-white/5'
           }`}
@@ -156,35 +155,65 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
         </button>
       </div>
 
-      {/* Error Alert Box with Mirror Option */}
+      {/* 1-Click HD Downloader Embed Card */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/40 via-zinc-900 to-zinc-900 border border-red-500/30 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="w-5 h-5 text-amber-400 fill-amber-400 animate-pulse" />
+            <h4 className="font-extrabold text-white text-sm sm:text-base">1-Click Universal HD Downloader</h4>
+          </div>
+          <a
+            href={ssYouTubeUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs flex items-center gap-1.5 transition-all shadow"
+          >
+            <span>SS YouTube Mirror</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+        <p className="text-xs text-zinc-400">
+          Downloads 1080p Full HD, 720p HD, 480p, 360p, and MP3 files directly to your device with 0 restrictions.
+        </p>
+
+        {/* Embedded Loader.to Downloader Iframe */}
+        <div className="w-full rounded-xl overflow-hidden bg-black/60 border border-white/10 shadow-inner">
+          <iframe
+            src={loaderIframeUrl}
+            className="w-full h-[280px] sm:h-[220px] border-none"
+            title="Universal HD Downloader"
+          />
+        </div>
+      </div>
+
+      {/* Error Alert Box */}
       {downloadError && (
-        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs sm:text-sm font-medium flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs sm:text-sm font-medium flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
             <span>{downloadError}</span>
           </div>
-
           <a
-            href={`https://yewtu.be/latest_version?id=${info.videoId}&itag=18`}
+            href={ssYouTubeUrl}
             target="_blank"
             rel="noreferrer"
             className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs flex items-center gap-1.5 shrink-0 transition-all shadow"
           >
             <Zap className="w-3.5 h-3.5" />
-            <span>Fast Mirror Stream</span>
+            <span>SS Mirror Download</span>
             <ExternalLink className="w-3 h-3" />
           </a>
         </div>
       )}
 
-      {/* Title Header for current tab */}
+      {/* Title Header for active tab */}
       <div className="flex items-center justify-between px-1">
         <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-red-500" />
           <span>
             {activeTab === 'video' && 'Available Video Resolutions (MP4 + Audio)'}
             {activeTab === 'audio' && 'Available Music Tracks (MP3 / M4A)'}
-            {activeTab === 'video-only' && 'High-Definition Video Streams (1080p / 4K)'}
+            {activeTab === 'hd' && 'High-Definition Video Streams (1080p / 4K)'}
           </span>
         </h3>
         <span className="text-xs text-zinc-500 font-semibold">{currentFormats.length} Option(s)</span>
@@ -227,12 +256,12 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
                       <span className="font-extrabold text-white text-base sm:text-lg">{qualityDisplay}</span>
                       {item.qualityLabel?.includes('720') && (
                         <span className="px-2.5 py-0.5 text-[10px] font-extrabold bg-gradient-to-r from-amber-500 to-red-500 text-white rounded-md shadow">
-                          🔥 Best Quality (Fast)
+                          🔥 Best Quality
                         </span>
                       )}
                       {item.qualityLabel?.includes('360') && (
                         <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md">
-                          ⚡ Ultra Fast
+                          ⚡ Fast Download
                         </span>
                       )}
                     </div>
@@ -250,7 +279,7 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
                   </div>
                 </div>
 
-                {/* Download Buttons */}
+                {/* Download Action Buttons */}
                 <div className="self-end sm:self-center w-full sm:w-auto flex items-center gap-2">
                   <button
                     onClick={() => handleDownload(item)}
@@ -289,12 +318,12 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
                     )}
                   </button>
 
-                  {/* Mirror button */}
+                  {/* SSYouTube Direct Mirror Link */}
                   <a
-                    href={`https://yewtu.be/latest_version?id=${info.videoId}&itag=${item.itag}`}
+                    href={ssYouTubeUrl}
                     target="_blank"
                     rel="noreferrer"
-                    title="Instant Mirror Stream Download"
+                    title="SS YouTube Direct Mirror Download"
                     className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10 transition-all shrink-0"
                   >
                     <ExternalLink className="w-4 h-4" />
@@ -309,7 +338,7 @@ export default function FormatSelector({ info }: FormatSelectorProps) {
       {/* Security Badge */}
       <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-center gap-2 text-xs text-zinc-400">
         <ShieldCheck className="w-4 h-4 text-emerald-400" />
-        <span>Safe & Encrypted Download • Multi-Tier Fail-Safe Pipeline</span>
+        <span>100% Guaranteed Download • Universal HD Engine Integrated</span>
       </div>
     </div>
   );
