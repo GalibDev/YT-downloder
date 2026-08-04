@@ -9,7 +9,7 @@ A modern, high-performance, full-featured **YouTube Video & Audio Downloader** w
 
 ---
 
-## ✨ Features
+##🔥Features...
 
 - **📺 Multi-Resolution Video Downloads**: Download videos in **1080p Full HD**, **720p HD**, **480p SD**, and **360p** resolutions.
 - **🎵 YouTube to MP3 Audio**: Extract high-quality MP3 / M4A audio files from podcasts, music videos, and songs.
